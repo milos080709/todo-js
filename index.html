@@ -23,12 +23,18 @@
     .done label { text-decoration: line-through; color: var(--muted); }
     .small { color:var(--muted); font-size:13px; margin-top:8px; }
     .ghost { background:transparent; color:var(--ink); border-color:#e5e7eb; }
+    .ghost.active { border-color: #2563eb; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="card">
       <h1>To-Do lista</h1>
+      <div class="row" style="margin:8px 0 10px; gap:8px; flex-wrap:wrap;">
+  <button id="fAll"   class="ghost">Sve</button>
+  <button id="fActive" class="ghost">Aktivne</button>
+  <button id="fDone"   class="ghost">Završene</button>
+</div>
       <div class="row">
         <input id="newTask" type="text" placeholder="Novi zadatak…" autocomplete="off" />
         <button id="addBtn" aria-label="Dodaj zadatak">Dodaj</button>
@@ -46,6 +52,7 @@
     // ====== Model (state) ======
     const STORAGE_KEY = "todo_milos_v1";
     let todos = load();
+    let currentFilter = "all"; // "all" | "active" | "done"
 
     function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
     function load(){
@@ -59,10 +66,43 @@
     const addBtn = document.getElementById('addBtn');
     const clearDoneBtn = document.getElementById('clearDone');
     const clearAllBtn = document.getElementById('clearAll');
+    // 1️⃣ Uzimamo dugmad iz HTML-a po njihovim ID-jevima
+const fAll = document.getElementById('fAll');
+const fActive = document.getElementById('fActive');
+const fDone = document.getElementById('fDone');
+
+// 2️⃣ Funkcija koja menja filter
+function setFilter(f){
+  currentFilter = f;  // zapamti koji filter je aktivan
+
+  // 3️⃣ Prvo skini oznaku 'active' sa svih dugmadi
+  [fAll, fActive, fDone].forEach(b => b.classList.remove('active'));
+
+  // 4️⃣ Dodaj 'active' samo na izabrano dugme
+  if (f === "all")    fAll.classList.add('active');
+  if (f === "active") fActive.classList.add('active');
+  if (f === "done")   fDone.classList.add('active');
+
+  // 5️⃣ Ponovo iscrtaj listu (da prikaže ono što treba)
+  render();
+}
+
+// 6️⃣ Na početku postavi filter na "all" (da se prikažu svi)
+setFilter("all");
+
+// 7️⃣ Kada klikneš na dugme, poziva se funkcija sa odgovarajućim filterom
+fAll.addEventListener('click',   () => setFilter("all"));
+fActive.addEventListener('click', () => setFilter("active"));
+fDone.addEventListener('click',   () => setFilter("done"));
+
 
     function render(){
       listEl.innerHTML = '';
-      todos.forEach((t) => {
+      let view = todos;
+if (currentFilter === "active") view = todos.filter(t => !t.done);
+if (currentFilter === "done")   view = todos.filter(t =>  t.done);
+
+      view.forEach((t) => {
         const li = document.createElement('li');
         li.className = t.done ? 'done' : '';
         const left = document.createElement('div');
