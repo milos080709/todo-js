@@ -11,10 +11,12 @@
     .wrap { max-width:720px; margin: 32px auto; padding: 0 16px; }
     .card { background:var(--card); border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.08); padding:20px; }
     h1 { margin:0 0 12px; font-size:clamp(22px,3.5vw,32px); }
-    .row { display:flex; gap:10px; }
+    .row { display:flex; gap:10px; align-items:center; }
     input[type="text"] { flex:1; padding:12px 14px; border:1px solid #e5e7eb; border-radius:10px; font-size:16px; }
-    button { padding:12px 14px; border-radius:10px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-weight:700; cursor:pointer; }
+    button { padding:10px 14px; border-radius:10px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-weight:700; cursor:pointer; }
     button:disabled { opacity:.6; cursor:not-allowed; }
+    .ghost { background:#fff; color:var(--ink); border-color:#e5e7eb; }
+    .ghost.active { border-color: var(--accent); }
     ul { list-style:none; padding:0; margin:16px 0 0; }
     li { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; background:#fff; margin-bottom:10px; }
     .task { display:flex; align-items:center; gap:10px; flex:1; }
@@ -22,25 +24,32 @@
     .task label { flex:1; }
     .done label { text-decoration: line-through; color: var(--muted); }
     .small { color:var(--muted); font-size:13px; margin-top:8px; }
-    .ghost { background:transparent; color:var(--ink); border-color:#e5e7eb; }
-    .ghost.active { border-color: #2563eb; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="card">
       <h1>To-Do lista</h1>
+
+      <!-- FILTERI -->
       <div class="row" style="margin:8px 0 10px; gap:8px; flex-wrap:wrap;">
-  <button id="fAll"   class="ghost">Sve</button>
-  <button id="fActive" class="ghost">Aktivne</button>
-  <button id="fDone"   class="ghost">Završene</button>
-</div>
-      <div class="row">
+        <button id="fAll" class="ghost">Sve</button>
+        <button id="fActive" class="ghost">Aktivne</button>
+        <button id="fDone" class="ghost">Završene</button>
+      </div>
+
+      <!-- INPUT + DODAJ -->
+      <div class="row" style="margin-top:6px;">
         <input id="newTask" type="text" placeholder="Novi zadatak…" autocomplete="off" />
         <button id="addBtn" aria-label="Dodaj zadatak">Dodaj</button>
       </div>
+
       <p class="small">Saveti: Enter dodaje zadatak • Klik na kvadratić = završeno • Sve se čuva lokalno (localStorage)</p>
+
+      <!-- LISTA -->
       <ul id="list"></ul>
+
+      <!-- AKCIJE -->
       <div class="row" style="margin-top:8px;">
         <button id="clearDone" class="ghost" aria-label="Obriši završene">Obriši završene</button>
         <button id="clearAll" class="ghost" aria-label="Obriši sve">Obriši sve</button>
@@ -66,45 +75,25 @@
     const addBtn = document.getElementById('addBtn');
     const clearDoneBtn = document.getElementById('clearDone');
     const clearAllBtn = document.getElementById('clearAll');
-    // 1️⃣ Uzimamo dugmad iz HTML-a po njihovim ID-jevima
-const fAll = document.getElementById('fAll');
-const fActive = document.getElementById('fActive');
-const fDone = document.getElementById('fDone');
 
-// 2️⃣ Funkcija koja menja filter
-function setFilter(f){
-  currentFilter = f;  // zapamti koji filter je aktivan
-
-  // 3️⃣ Prvo skini oznaku 'active' sa svih dugmadi
-  [fAll, fActive, fDone].forEach(b => b.classList.remove('active'));
-
-  // 4️⃣ Dodaj 'active' samo na izabrano dugme
-  if (f === "all")    fAll.classList.add('active');
-  if (f === "active") fActive.classList.add('active');
-  if (f === "done")   fDone.classList.add('active');
-
-  // 5️⃣ Ponovo iscrtaj listu (da prikaže ono što treba)
-  render();
-}
-
-// 6️⃣ Na početku postavi filter na "all" (da se prikažu svi)
-setFilter("all");
-
-// 7️⃣ Kada klikneš na dugme, poziva se funkcija sa odgovarajućim filterom
-fAll.addEventListener('click',   () => setFilter("all"));
-fActive.addEventListener('click', () => setFilter("active"));
-fDone.addEventListener('click',   () => setFilter("done"));
-
+    // Filter dugmad
+    const fAll = document.getElementById('fAll');
+    const fActive = document.getElementById('fActive');
+    const fDone = document.getElementById('fDone');
 
     function render(){
       listEl.innerHTML = '';
-      let view = todos;
-if (currentFilter === "active") view = todos.filter(t => !t.done);
-if (currentFilter === "done")   view = todos.filter(t =>  t.done);
 
+      // Filtriraj prema aktivnom filteru
+      let view = todos;
+      if (currentFilter === "active") view = todos.filter(t => !t.done);
+      if (currentFilter === "done")   view = todos.filter(t =>  t.done);
+
+      // Nacrtaj prikazanu listu
       view.forEach((t) => {
         const li = document.createElement('li');
         li.className = t.done ? 'done' : '';
+
         const left = document.createElement('div');
         left.className = 'task';
 
@@ -122,12 +111,13 @@ if (currentFilter === "done")   view = todos.filter(t =>  t.done);
         const del = document.createElement('button');
         del.textContent = 'Obriši';
         del.className = 'ghost';
-        del.addEventListener('click', () => remove(t.id));
+        del.addEventListener('click', () => removeTask(t.id));
 
         li.appendChild(left);
         li.appendChild(del);
         listEl.appendChild(li);
       });
+
       addBtn.disabled = !inputEl.value.trim();
     }
 
@@ -142,7 +132,7 @@ if (currentFilter === "done")   view = todos.filter(t =>  t.done);
       todos = todos.map(t => t.id === id ? { ...t, done: !t.done } : t);
       save(); render();
     }
-    function remove(id){
+    function removeTask(id){
       todos = todos.filter(t => t.id !== id);
       save(); render();
     }
@@ -156,17 +146,29 @@ if (currentFilter === "done")   view = todos.filter(t =>  t.done);
       }
     }
 
+    // Filter handler
+    function setFilter(f){
+      currentFilter = f;
+      [fAll, fActive, fDone].forEach(b => b.classList.remove('active'));
+      if (f === "all")    fAll.classList.add('active');
+      if (f === "active") fActive.classList.add('active');
+      if (f === "done")   fDone.classList.add('active');
+      render();
+    }
+
     // Events
     addBtn.addEventListener('click', () => add(inputEl.value));
-    inputEl.addEventListener('keydown', (e) => {
-      if(e.key === 'Enter') add(inputEl.value);
-    });
+    inputEl.addEventListener('keydown', (e) => { if(e.key === 'Enter') add(inputEl.value); });
     inputEl.addEventListener('input', () => { addBtn.disabled = !inputEl.value.trim(); });
     clearDoneBtn.addEventListener('click', clearDone);
     clearAllBtn.addEventListener('click', clearAll);
 
+    fAll.addEventListener('click',   () => setFilter("all"));
+    fActive.addEventListener('click', () => setFilter("active"));
+    fDone.addEventListener('click',   () => setFilter("done"));
+
     // Init
-    render();
+    setFilter("all");  // podesi početni filter i odmah renderuj
   </script>
 </body>
 </html>
